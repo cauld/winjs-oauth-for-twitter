@@ -1,0 +1,17 @@
+﻿body {
+    padding: 20px;
+}
+
+h1 {
+    font-size: 30px;
+}
+
+textarea {
+    height: 300px;
+    width: 40%;
+    padding: 20px;
+}
+
+.hideme {
+    display: none;
+}
