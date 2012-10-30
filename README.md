@@ -12,9 +12,9 @@ Visual Studio 2012 (>= Express edition).
 
 Sample Setup
 ------------
-1. Update js/config.js with you Twitter Apps consumer key & secret
+1. Update js/config.js with your Twitter app's consumer key & secret
     - This will take you through the web auth flow
-2. Update js/config.js with user acess token details either from 
-ones you already have or ones obtained in step 1.
+2. Update js/config.js with a user access token & secret either from 
+one you already have or with one obtained after running the sample project once with just step 1.
     - This will bypass the web auth step and just execute a signed 
  request against the Twitter API.
