@@ -1,5 +1,5 @@
 ﻿/**
- * WinJS OAuth for Twitter
+ * WinJS OAuth for Twitter v1.1
  * Copyright Manifold 2012. All rights reserved.
  * Licensed under the BSD License.
  * https://github.com/cauld/twitter-oauth-for-winjs
@@ -76,6 +76,19 @@ var TwitterOAuth = WinJS.Class.define(
             return signature;
         },
 
+        _getSortedKeys: function (obj) {
+            var key,
+                keys = [];
+
+            for (key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    keys[keys.length] = key;
+                }
+            }
+
+            return keys.sort();
+        },
+
         /** 
          * Assembles proper headers based on a series of provided tokens, secrets, and signatures
          * References: 
@@ -84,8 +97,14 @@ var TwitterOAuth = WinJS.Class.define(
          * Debug oauth signing errors here - https://dev.twitter.com/apps/3400014/oauth
          */
         _getOAuthRequestHeaders: function (headerParams) {
-            var sigBaseString,
-                sigBaseStringParams,
+            var i,
+                k,
+                kv,
+                sortedKeys,
+                sigParams,
+                sigBaseString,
+                sigBaseStringParams = '',
+                queryParamsKey,
                 keyText,
                 signature,
                 headers,
@@ -95,19 +114,41 @@ var TwitterOAuth = WinJS.Class.define(
             // Acquiring a request token
             nonce = Math.floor(nonce * 1000000000);
 
+            sigParams = {
+                oauth_callback: !headerParams.oauthTokenSecret ? encodeURIComponent(this._callbackURL) : "",
+                oauth_consumer_key: headerParams.consumerKey,
+                oauth_nonce: nonce,
+                oauth_signature_method: 'HMAC-SHA1',
+                oauth_timestamp: timestamp,
+                oauth_token: headerParams.oauthToken || "",
+                oauth_verifier: headerParams.oauthVerifier || "",
+                oauth_version: '1.0'
+            };
+
+            //We need to combine the oauth params with any query params
+            if (headerParams.queryParams) {
+                for (queryParamsKey in headerParams.queryParams) {
+                    if (headerParams.queryParams.hasOwnProperty(queryParamsKey)) {
+                        sigParams[queryParamsKey] = headerParams.queryParams[queryParamsKey];
+                    }
+                }
+            }
+
             // Compute base signature string and sign it.
             // This is a common operation that is required for all requests even after the token is obtained.
             // Parameters need to be sorted in alphabetical order
             // Keys and values should be URL Encoded.
-            sigBaseStringParams = (!headerParams.oauthTokenSecret ? ("oauth_callback=" + encodeURIComponent(this._callbackURL) + "&") : "") +
-                "oauth_consumer_key=" + headerParams.consumerKey +
-                "&oauth_nonce=" + nonce +
-                "&oauth_signature_method=HMAC-SHA1" +
-                "&oauth_timestamp=" + timestamp +
-                (headerParams.oauthToken ? ("&oauth_token=" + headerParams.oauthToken) : "") +
-                (headerParams.oauthVerifier ? ("&oauth_verifier=" + headerParams.oauthVerifier) : "") +
-                "&oauth_version=1.0" +
-                (headerParams.queryParams ? ("&" + headerParams.queryParams) : "");
+            sortedKeys = this._getSortedKeys(sigParams);
+            for (i = 0; i < sortedKeys.length; i++) {
+                k = sortedKeys[i];
+                kv = sigParams[sortedKeys[i]];
+                if (kv && kv !== '') {
+                    if (sigBaseStringParams !== '') {
+                        sigBaseStringParams += '&';
+                    }
+                    sigBaseStringParams += k + '=' + kv;
+                }
+            }
 
             sigBaseString = headerParams.method + "&" + encodeURIComponent(headerParams.url) + "&" + encodeURIComponent(sigBaseStringParams);
 
@@ -293,7 +334,7 @@ var TwitterOAuth = WinJS.Class.define(
         },
 
         //Signs a request with the apps consumer secret & the users access token secret
-        //Note: queryParms must be in the form param1=value1&param2=value2 (values should be urlencoded)
+        //Note: queryParms must be an object with key/value pairs (values should be urlencoded)
         sendAuthorizedRequestForUser: function (url, method, queryParams) {
             var self = this,
                 promise,
@@ -315,7 +356,20 @@ var TwitterOAuth = WinJS.Class.define(
                 }
 
                 if (method === 'GET' && queryParams) {
-                    url += '?' + queryParams;
+                    var i = 0,
+                        key,
+                        queryString = '';
+
+                    for (key in queryParams) {
+                        if (queryParams.hasOwnProperty(key)) {
+                            if (i > 0) {
+                                queryString += '&';
+                            }
+                            queryString += key + '=' + queryParams[key];
+                            i++;
+                        }
+                    }
+                    url += '?' + queryString;
                 }
 
                 authzHeader = self._getOAuthRequestHeaders(headerParams);

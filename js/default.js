@@ -15,8 +15,12 @@
 
     //Fetch a sample Twitter profile for demo purposes
     function getSampleTwitterProfile(twitterOAuthInstance, callback) {
-        var url = 'https://api.twitter.com/1.1/users/show.json',
-            queryParams = 'screen_name=microsoft';
+        var queryParams,
+            url = 'https://api.twitter.com/1.1/users/show.json';
+
+        queryParams = {
+            'screen_name': 'microsoft'
+        };
 
         twitterOAuthInstance.sendAuthorizedRequestForUser(url, 'GET', queryParams)
             .then(function (results) {
