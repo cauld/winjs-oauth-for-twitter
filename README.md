@@ -10,6 +10,14 @@ files so the main class file can be found in the /js folder.
 The sample includes a complete solution that can be run with 
 Visual Studio 2012 (>= Express edition).
 
+License
+-------
+Copyright Manifold 2012. All rights reserved.
+
+Dual Licensed under the BSD License & Microsoft Limited Public License (MLPL).
+
+You don’t have to do anything special to choose one license or the other and you don’t have to notify anyone which license you are using.
+
 Sample Setup
 ------------
 1. Update js/config.js with your Twitter app's consumer key & secret
