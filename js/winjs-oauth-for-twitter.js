@@ -1,11 +1,7 @@
 ﻿/**
  * WinJS OAuth for Twitter
  * https://github.com/cauld/twitter-oauth-for-winjs
- *
- * Copyright Manifold 2012. All rights reserved.
- * Dual Licensed under the BSD License & Microsoft Limited Public License (MLPL)
- * You don’t have to do anything special to choose one license or the other and you don’t have to 
- * notify anyone which license you are using.
+ * Apache License, Version 2.0
  */
 
 /*global Windows: false, WinJS: false, XMLHttpRequest: false */
