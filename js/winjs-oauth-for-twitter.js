@@ -1,5 +1,5 @@
 ﻿/**
- * WinJS OAuth for Twitter
+ * WinJS OAuth for Twitter v1.1
  * https://github.com/cauld/twitter-oauth-for-winjs
  * Apache License, Version 2.0
  */
