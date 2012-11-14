@@ -1,5 +1,5 @@
 ﻿/**
- * WinJS OAuth for Twitter v1.1
+ * WinJS OAuth for Twitter
  * https://github.com/cauld/twitter-oauth-for-winjs
  * Copyright Manifold 2012. All rights reserved.
  * Apache License, Version 2.0
@@ -31,21 +31,33 @@ var TwitterOAuth = WinJS.Class.define(
         _sendAuthorizedRequest: function (url, method, headerParams, callback) {
             var authzHeader = this._getOAuthRequestHeaders(headerParams);
 
-            this._xhrRequest(method, url, authzHeader, function (result) {
-                callback(result);
+            this._xhrRequest(method, url, authzHeader, function (result, statusCode) {
+                callback(result, statusCode);
             });
         },
 
         _xhrRequest: function (method, url, authzHeader, callback) {
+            var request,
+                extraResponseInfo;
+
             try {
-                var request = new XMLHttpRequest();
+                request = new XMLHttpRequest();
                 request.open(method, url, true);
                 request.onreadystatechange = function () {
                     if (request.readyState === 4) {
                         if (request.status === 200) {
-                            callback(request.responseText);
+                            //In v1.1 Twitter moved the API rate limit into the response headers
+                            //Ref 1: https://dev.twitter.com/docs/rate-limiting-faq#checking
+                            //Ref 2: https://dev.twitter.com/docs/rate-limiting/1.1/limits
+                            extraResponseInfo = {
+                                "X-Rate-Limit-Limit": request.getResponseHeader('X-Rate-Limit-Limit') || null,
+                                "X-Rate-Limit-Remaining": request.getResponseHeader('X-Rate-Limit-Remaining') || null,
+                                "X-Rate-Limit-Reset": request.getResponseHeader('X-Rate-Limit-Reset') || null
+                            };
+
+                            callback(request.responseText, 200, extraResponseInfo);
                         } else {
-                            callback(false);
+                            callback(false, request.status); //429 is rate limit exceeded
                         }
                     }
                 };
@@ -53,7 +65,7 @@ var TwitterOAuth = WinJS.Class.define(
                 request.send();
             } catch (err) {
                 //console.log("Error sending request: " + err);
-                callback(false);
+                callback(false, 500);
             }
         },
 
@@ -373,8 +385,12 @@ var TwitterOAuth = WinJS.Class.define(
                 }
 
                 authzHeader = self._getOAuthRequestHeaders(headerParams);
-                self._xhrRequest(method, url, authzHeader, function (results) {
-                    complete(results);
+                self._xhrRequest(method, url, authzHeader, function (results, statusCode, extraResponseInfo) {
+                    complete({
+                        results: results,
+                        statusCode: statusCode,
+                        extraResponseInfo: extraResponseInfo
+                    });
                 });
             });
 
