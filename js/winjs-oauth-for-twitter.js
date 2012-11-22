@@ -1,5 +1,5 @@
 ﻿/**
- * WinJS OAuth for Twitter v1.2
+ * WinJS OAuth for Twitter v1.3
  * https://github.com/cauld/twitter-oauth-for-winjs
  * Copyright Manifold 2012. All rights reserved.
  * Apache License, Version 2.0
@@ -31,12 +31,12 @@ var TwitterOAuth = WinJS.Class.define(
         _sendAuthorizedRequest: function (url, method, headerParams, callback) {
             var authzHeader = this._getOAuthRequestHeaders(headerParams);
 
-            this._xhrRequest(method, url, authzHeader, function (result, statusCode) {
+            this._xhrRequest(method, url, null, authzHeader, function (result, statusCode) {
                 callback(result, statusCode);
             });
         },
 
-        _xhrRequest: function (method, url, authzHeader, callback) {
+        _xhrRequest: function (method, url, postBody, authzHeader, callback) {
             var request,
                 extraResponseInfo;
 
@@ -62,7 +62,14 @@ var TwitterOAuth = WinJS.Class.define(
                     }
                 };
                 request.setRequestHeader("Authorization", authzHeader);
-                request.send();
+
+                if (postBody === null) {
+                    request.send();
+                } else {
+                    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    request.setRequestHeader("Content-length", postBody.length);
+                    request.send(postBody);
+                }
             } catch (err) {
                 //console.log("Error sending request: " + err);
                 callback(false, 500);
@@ -350,6 +357,7 @@ var TwitterOAuth = WinJS.Class.define(
         sendAuthorizedRequestForUser: function (url, method, queryParams) {
             var self = this,
                 promise,
+                postBody = null,
                 headerParams,
                 authzHeader;
 
@@ -365,9 +373,7 @@ var TwitterOAuth = WinJS.Class.define(
 
                 if (queryParams) {
                     headerParams.queryParams = queryParams;
-                }
 
-                if (method === 'GET' && queryParams) {
                     var i = 0,
                         key,
                         queryString = '';
@@ -381,11 +387,16 @@ var TwitterOAuth = WinJS.Class.define(
                             i++;
                         }
                     }
-                    url += '?' + queryString;
+
+                    if (method === 'GET') {
+                        url += '?' + queryString;
+                    } else {
+                        postBody = queryString;
+                    }
                 }
 
                 authzHeader = self._getOAuthRequestHeaders(headerParams);
-                self._xhrRequest(method, url, authzHeader, function (results, statusCode, extraResponseInfo) {
+                self._xhrRequest(method, url, postBody, authzHeader, function (results, statusCode, extraResponseInfo) {
                     complete({
                         results: results,
                         statusCode: statusCode,
