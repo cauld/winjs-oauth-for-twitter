@@ -23,8 +23,8 @@
         };
 
         twitterOAuthInstance.sendAuthorizedRequestForUser(url, 'GET', queryParams)
-            .then(function (results) {
-                callback(results);
+            .then(function (response) {
+                callback(response.results);
             })
             .done();
     }
@@ -83,7 +83,7 @@
                                                             Twitter.OAuth.Config.userOAuthToken, Twitter.OAuth.Config.userOAuthTokenSecret);
 
                 getSampleTwitterProfile(twitterOAuthInstance, function (profile) {
-                    twitterResponseNode.innerHTML = profile;
+                    twitterResponseNode.innerHTML = JSON.stringify(profile);
                 });
             }
         }

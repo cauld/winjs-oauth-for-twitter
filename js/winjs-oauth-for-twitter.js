@@ -63,7 +63,7 @@ var TwitterOAuth = WinJS.Class.define(
                 };
                 request.setRequestHeader("Authorization", authzHeader);
 
-                if (postBody === null) {
+                if (method === 'GET' || postBody === null) {
                     request.send();
                 } else {
                     request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
