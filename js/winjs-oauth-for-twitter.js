@@ -183,7 +183,7 @@ var TwitterOAuth = WinJS.Class.define(
                 "\", oauth_signature=\"" + encodeURIComponent(signature) +
                 "\", oauth_signature_method=\"HMAC-SHA1\", oauth_timestamp=\"" + timestamp +
                 (headerParams.oauthToken ? ("\", oauth_token=\"" + headerParams.oauthToken) : "") +
-                (headerParams.oauthVerifier ? ("\", oauth_verify=\"" + headerParams.oauthVerifier) : "") +
+                (headerParams.oauthVerifier ? ("\", oauth_verifier=\"" + headerParams.oauthVerifier) : "") +
                 "\", oauth_version=\"1.0\"";
 
             return headers;
