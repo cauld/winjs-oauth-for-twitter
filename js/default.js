@@ -51,7 +51,7 @@
 
             //If the user has yet to approve your app then launch the web auth form,
             //do the handshake, and get their approved token info now...
-            if (Twitter.OAuth.Config.userOAuthToken === '' || Twitter.OAuth.Config.userOAuthToken === '') {
+            if (Twitter.OAuth.Config.userOAuthToken === '' || Twitter.OAuth.Config.userOAuthTokenSecret === '') {
                 twitterOAuthInstance = new TwitterOAuth(Twitter.OAuth.Config.consumerKey, Twitter.OAuth.Config.consumerSecret);
 
                 twitterOAuthInstance.doTwitterWebAuth(function (usersTwitterOauthInfo) {
