@@ -27,3 +27,5 @@ Sample Setup
 one you already have or with one obtained after running the sample project once with just step 1.
     - This will bypass the web auth step and just execute a signed 
  request against the Twitter API.
+
+![](screenshot.png)

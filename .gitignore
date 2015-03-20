@@ -1,4 +1,6 @@
 src/winjs-oauth-for-twitter/bin
-src/winjs-oauth-for-twitter/obj
+src/winjs-oauth-for-twitter/bld
 src/winjs-oauth-for-twitter.Phone/bin
-src/winjs-oauth-for-twitter.Phone/obj
+src/winjs-oauth-for-twitter.Phone/bld
+src/winjs-oauth-for-twitter.v12.suo
+*.user
