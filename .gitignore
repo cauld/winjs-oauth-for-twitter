@@ -1,4 +1,4 @@
-js/config.js
-bin/*
-bld/*
-winjs-oauth-for-twitter_TemporaryKey.pfx
+src/winjs-oauth-for-twitter/bin
+src/winjs-oauth-for-twitter/obj
+src/winjs-oauth-for-twitter.Phone/bin
+src/winjs-oauth-for-twitter.Phone/obj
