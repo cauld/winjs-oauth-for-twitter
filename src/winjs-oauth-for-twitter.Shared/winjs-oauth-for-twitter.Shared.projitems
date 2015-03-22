@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>cde7cd74-29aa-4992-b926-c26b169876a3</SharedGUID>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)js\common.js" />
+    <Content Include="$(MSBuildThisFileDirectory)js\config.js" />
+    <Content Include="$(MSBuildThisFileDirectory)js\winjs-oauth-for-twitter.js" />
+  </ItemGroup>
+</Project>

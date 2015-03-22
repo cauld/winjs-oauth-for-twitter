@@ -1,7 +1,7 @@
 ﻿/**
  * WinJS OAuth for Twitter v1.3
- * https://github.com/cauld/twitter-oauth-for-winjs
- * Copyright Manifold 2012. All rights reserved.
+ * https://github.com/cauld/winjs-oauth-for-twitter
+ * Copyright Manifold - sebagomez 2012-2015. All rights reserved.
  * Apache License, Version 2.0
  */
 
@@ -19,7 +19,7 @@ var TwitterOAuth = WinJS.Class.define(
         this._accessTokenSecret = accessTokenSecret || null;
 
         //Define the OAuth callback url, not normally important for desktop apps
-        this._callbackURL = callbackUrl || 'http://localhost/auth/twitter/callback';
+        this._callbackURL = callbackUrl || null;
     },
     //instanceMembers
     {
@@ -32,19 +32,20 @@ var TwitterOAuth = WinJS.Class.define(
             var authzHeader = this._getOAuthRequestHeaders(headerParams);
 
             this._xhrRequest(method, url, null, authzHeader, function (result, statusCode) {
-                callback(result, statusCode);
+            	callback(result, statusCode);
             });
         },
 
         _xhrRequest: function (method, url, postBody, authzHeader, callback) {
-            var request,
+        	var self = this,
+				request,
                 extraResponseInfo;
 
             try {
-                request = new XMLHttpRequest();
+            	request = new XMLHttpRequest();
                 request.open(method, url, true);
                 request.onreadystatechange = function () {
-                    if (request.readyState === 4) {
+                    if (request.readyState === request.DONE) {
                         if (request.status === 200) {
                             //In v1.1 Twitter moved the API rate limit into the response headers
                             //Ref 1: https://dev.twitter.com/docs/rate-limiting-faq#checking
@@ -57,7 +58,7 @@ var TwitterOAuth = WinJS.Class.define(
 
                             callback(request.responseText, 200, extraResponseInfo);
                         } else {
-                            callback(false, request.status); //429 is rate limit exceeded
+                        	throw self._processErrorResponse(request.responseText);
                         }
                     }
                 };
@@ -74,6 +75,16 @@ var TwitterOAuth = WinJS.Class.define(
                 //console.log("Error sending request: " + err);
                 callback(false, 500);
             }
+        },
+
+        _processErrorResponse: function (responseXmlError) {
+        	var i = responseXmlError.indexOf('error code="') + 'error code="'.length;
+        	var j = responseXmlError.indexOf('\"', i);
+        	var code = responseXmlError.substring(i, j);
+        	var m = responseXmlError.indexOf('>', j) + 1;
+        	var n = responseXmlError.indexOf('<', m);
+        	var msg = responseXmlError.substring(m, n);
+        	return code + ': ' + msg;
         },
 
         //Generate an OAuth 1.0a HMAC-SHA1 signature for an HTTP request
@@ -183,7 +194,7 @@ var TwitterOAuth = WinJS.Class.define(
                 "\", oauth_signature=\"" + encodeURIComponent(signature) +
                 "\", oauth_signature_method=\"HMAC-SHA1\", oauth_timestamp=\"" + timestamp +
                 (headerParams.oauthToken ? ("\", oauth_token=\"" + headerParams.oauthToken) : "") +
-                (headerParams.oauthVerifier ? ("\", oauth_verify=\"" + headerParams.oauthVerifier) : "") +
+                (headerParams.oauthVerifier ? ("\", oauth_verifier=\"" + headerParams.oauthVerifier) : "") +
                 "\", oauth_version=\"1.0\"";
 
             return headers;
@@ -304,52 +315,104 @@ var TwitterOAuth = WinJS.Class.define(
                 oauthVerifier;
 
             this._getRequestToken(function (requestTokenData) {
+
+            	self.setAccessToken(requestTokenData.oauth_token, requestTokenData.oauth_token_secret);
+
                 //Send the user to get app authorization
                 startURI = new Windows.Foundation.Uri(self._authorizeURL + "?oauth_token=" + requestTokenData.oauth_token);
                 endURI = new Windows.Foundation.Uri(self._callbackURL);
+                //endURI = Windows.Security.Authentication.Web.WebAuthenticationBroker.getCurrentApplicationCallbackUri();
 
-                Windows.Security.Authentication.Web.WebAuthenticationBroker.authenticateAsync(
-                Windows.Security.Authentication.Web.WebAuthenticationOptions.none, startURI, endURI)
-                    .done(function (result) {
-                        var twitterResponseData = result.responseData,
-                            twitterResponseStatus = result.responseStatus;
+                if (Windows.Security.Authentication.Web.WebAuthenticationBroker.authenticateAndContinue) { // Phone
 
-                        if (twitterResponseStatus === Windows.Security.Authentication.Web.WebAuthenticationStatus.errorHttp) {
-                            //console.log("Error returned: " + result.responseErrorDetail);
-                            callback(false);
-                        } else {
-                            //The authorize request when successful will return an oauthVerifier
-                            //https://dev.twitter.com/docs/auth/authorizing-request
-                            responseKeyValPairs = twitterResponseData.split("?")[1].split("&");
 
-                            //Disect the important parts
-                            for (i = 0; i < responseKeyValPairs.length; i++) {
-                                splits = responseKeyValPairs[i].split("=");
-                                switch (splits[0]) {
-                                    case "oauth_verifier":
-                                        oauthVerifier = splits[1];
-                                        break;
-                                }
-                            }
+                	WinJS.Application.webAuthenticatedHandler = function (eventObject) {
+                		if (eventObject && eventObject.webAuthenticationResult && eventObject.webAuthenticationResult.responseData) {
+                			self._continueAuthentication(eventObject.webAuthenticationResult.responseData, callback);
+                		}
+                	};
 
-                            //With the user request token in hand we can request a perm user access token
-                            self._getAccessToken(requestTokenData.oauth_token, oauthVerifier, function (accessTokenData) {
-                                if (accessTokenData === false) {
-                                    //Request failes, most likely the user cancelled the request
-                                    callback(false);
-                                } else {
-                                    //Set this in the instance, but return as well so it can be saved off as needed
-                                    self._accessToken = accessTokenData.oauth_token;
-                                    self._accessTokenSecret = accessTokenData.oauth_token_secret;
-                                    callback(accessTokenData);
-                                }
-                            });
-                        }
-                    }, function (err) {
-                        //console.log("Error returned by WebAuth broker: " + err.message);
-                        callback(false);
-                    });
+                	Windows.Security.Authentication.Web.WebAuthenticationBroker.authenticateAndContinue(startURI, endURI);
+                }
+                else {
+                	Windows.Security.Authentication.Web.WebAuthenticationBroker.authenticateAsync(
+					Windows.Security.Authentication.Web.WebAuthenticationOptions.none, startURI, endURI)
+						.done(function (result) {
+							var twitterResponseData = result.responseData,
+								twitterResponseStatus = result.responseStatus;
+
+							if (twitterResponseStatus === Windows.Security.Authentication.Web.WebAuthenticationStatus.errorHttp) {
+								//console.log("Error returned: " + result.responseErrorDetail);
+								callback(false);
+							} else {
+								self._continueAuthentication(twitterResponseData, callback);
+
+								//The authorize request when successful will return an oauthVerifier
+								//https://dev.twitter.com/docs/auth/authorizing-request
+								//responseKeyValPairs = twitterResponseData.split("?")[1].split("&");
+
+								////Disect the important parts
+								//for (i = 0; i < responseKeyValPairs.length; i++) {
+								//	splits = responseKeyValPairs[i].split("=");
+								//	switch (splits[0]) {
+								//		case "oauth_verifier":
+								//			oauthVerifier = splits[1];
+								//			break;
+								//	}
+								//}
+
+								////With the user request token in hand we can request a perm user access token
+								//self._getAccessToken(requestTokenData.oauth_token, oauthVerifier, function (accessTokenData) {
+								//	if (accessTokenData === false) {
+								//		//Request failes, most likely the user cancelled the request
+								//		callback(false);
+								//	} else {
+								//		//Set this in the instance, but return as well so it can be saved off as needed
+								//		self._accessToken = accessTokenData.oauth_token;
+								//		self._accessTokenSecret = accessTokenData.oauth_token_secret;
+								//		callback(accessTokenData);
+								//	}
+								//});
+							}
+						}, function (err) {
+							//console.log("Error returned by WebAuth broker: " + err.message);
+							callback(false);
+						});
+                }
             });
+        },
+
+    	//Continues with the authentication process
+    	//returnedTokens is a string in form of oauth_token=ctcYVVmFXXXXXXXXXXXXXX&oauth_verifier=2DPvVYYYYYYYYYYYYYYYY0MbT2O
+        _continueAuthentication: function (returnedTokens, callback) {
+        	var self = this, oauthVerifier, oauthToken;
+        	var responseKeyValPairs = returnedTokens.split("?")[1].split("&");
+
+        	//Disect the important parts
+        	for (i = 0; i < responseKeyValPairs.length; i++) {
+        		splits = responseKeyValPairs[i].split("=");
+        		switch (splits[0]) {
+        			case "oauth_verifier":
+        				oauthVerifier = splits[1];
+        				break;
+        			case "oauth_token":
+        				oauthToken = splits[1];
+        				break;
+        		}
+        	}
+
+        	//With the user request token in hand we can request a perm user access token
+        	self._getAccessToken(oauthToken, oauthVerifier, function (accessTokenData) {
+        		if (accessTokenData === false) {
+        			//Request failes, most likely the user cancelled the request
+        			callback(false);
+        		} else {
+        			//Set this in the instance, but return as well so it can be saved off as needed
+        			self._accessToken = accessTokenData.oauth_token;
+        			self._accessTokenSecret = accessTokenData.oauth_token_secret;
+        			callback(accessTokenData);
+        		}
+        	});
         },
 
         //Signs a request with the apps consumer secret & the users access token secret
